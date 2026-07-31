@@ -55,7 +55,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       JxlCompressionOption compressionOption,
                       float compressionDistance,
                       int effort,
-                      int decodingSpeed);
+                      int decodingSpeed,
+                      const std::vector<uint8_t>& exifData);
 
 bool isJXL(std::vector<uint8_t>& src);
 

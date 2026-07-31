@@ -56,6 +56,7 @@ static inline float JXLGetDistance(const int quality)
                      effort:(int)effort
                     quality:(int)quality
               decodingSpeed:(JXLEncoderDecodingSpeed)decodingSpeed
+                   exifData:(nullable NSData *)exifData
                       error:(NSError * _Nullable *_Nullable)error {
     try {
         if (quality < 0 || quality > 100) {
@@ -110,10 +111,16 @@ static inline float JXLGetDistance(const int quality)
             pixels = resizedVector;
         }
 
+        std::vector<uint8_t> cppExifData;
+        if (exifData) {
+            cppExifData.assign((const uint8_t*)exifData.bytes,
+                               (const uint8_t*)exifData.bytes + exifData.length);
+        }
+
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
-        auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data, 
+        auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
-                                        effort, (int)decodingSpeed);
+                                        effort, (int)decodingSpeed, cppExifData);
         if (!encoded) {
             delete wrapper;
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot encode JXL image" }];

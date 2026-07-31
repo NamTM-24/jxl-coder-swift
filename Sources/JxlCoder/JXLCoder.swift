@@ -100,12 +100,14 @@ public class JXLCoder {
                               compressionOption: JXLCompressionOption = .lossy,
                               effort: Int = 7,
                               quality: Int = 0,
-                              decodingSpeed: JXLEncoderDecodingSpeed = .slowest) throws -> Data {
+                              decodingSpeed: JXLEncoderDecodingSpeed = .slowest,
+                              exifData: Data? = nil) throws -> Data {
         return try shared.encode(image, colorSpace: colorSpace,
                                  compressionOption: compressionOption,
                                  effort: Int32(effort),
                                  quality: Int32(quality),
-                                 decodingSpeed: decodingSpeed)
+                                 decodingSpeed: decodingSpeed,
+                                 exifData: exifData)
     }
     
     /***

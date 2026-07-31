@@ -269,7 +269,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       JxlCompressionOption compressionOption,
                       float compressionDistance,
                       int effort,
-                      int decodingSpeed) {
+                      int decodingSpeed,
+                      const std::vector<uint8_t>& exifData) {
     auto enc = JxlEncoderMake(nullptr);
     auto runner = JxlThreadParallelRunnerMake(nullptr,
                                               JxlThreadParallelRunnerDefaultNumWorkerThreads());
@@ -365,6 +366,19 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
     if (JxlEncoderFrameSettingsSetOption(frameSettings,
                                          JXL_ENC_FRAME_SETTING_EFFORT, effort) != JXL_ENC_SUCCESS) {
         return false;
+    }
+
+    if (!exifData.empty()) {
+        if (JXL_ENC_SUCCESS != JxlEncoderUseBoxes(enc.get())) {
+            return false;
+        }
+        const JxlBoxType exifBoxType = {'E', 'x', 'i', 'f'};
+        if (JXL_ENC_SUCCESS != JxlEncoderAddBox(enc.get(), exifBoxType,
+                                                exifData.data(), exifData.size(),
+                                                JXL_FALSE)) {
+            return false;
+        }
+        JxlEncoderCloseBoxes(enc.get());
     }
 
     if (JXL_ENC_SUCCESS !=

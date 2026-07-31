@@ -44,6 +44,7 @@
                      effort:(int)effort
                      quality:(int)quality
                      decodingSpeed:(JXLEncoderDecodingSpeed)decodingSpeed
+                     exifData:(nullable NSData *)exifData
                      error:(NSError * _Nullable *_Nullable)error;
 @end
 
