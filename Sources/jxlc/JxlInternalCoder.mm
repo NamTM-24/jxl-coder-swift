@@ -71,7 +71,8 @@ static inline float JXLGetDistance(const int quality)
 
         std::vector<uint8_t> pixels;
         int width, height;
-        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height];
+        int bitsPerSample = 8;
+        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height bitsPerSample:&bitsPerSample];
         if (width < 0 || height < 0) {
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Width and height must be > 0!!" }];
             return nil;
@@ -103,7 +104,7 @@ static inline float JXLGetDistance(const int quality)
         }
 
         if (jColorspace == rgb) {
-            auto resizedVector = [RgbRgbaConverter convertRGBAtoRGB:pixels width:width height:height];
+            auto resizedVector = [RgbRgbaConverter convertRGBAtoRGB:pixels width:width height:height bitsPerSample:bitsPerSample];
             if (resizedVector.size() == 1) {
                 *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot convert RGBA pixels to RGB" }];
                 return nil;
@@ -120,7 +121,7 @@ static inline float JXLGetDistance(const int quality)
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
         auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
-                                        effort, (int)decodingSpeed, cppExifData);
+                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample);
         if (!encoded) {
             delete wrapper;
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot encode JXL image" }];

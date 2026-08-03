@@ -57,6 +57,21 @@
     return dstVector;
 }
 
++(std::vector<uint8_t>) convertRGBAtoRGB:(std::vector<uint8_t>&)srcVector width:(int)width height:(int)height bitsPerSample:(int)bitsPerSample {
+    if (bitsPerSample <= 8) {
+        return [self convertRGBAtoRGB:srcVector width:width height:height];
+    }
+    std::vector<uint8_t> dstVector;
+    dstVector.resize(width * height * 3 * sizeof(uint16_t));
+    uint16_t* srcPtr = (uint16_t*)srcVector.data();
+    uint16_t* dstPtr = (uint16_t*)dstVector.data();
+    if (![self convertRGBAU16ToRGBU16:srcPtr dst:dstPtr width:width height:height]) {
+        dstVector.resize(1);
+        return dstVector;
+    }
+    return dstVector;
+}
+
 +(bool)convertRGBU16ToRGBAU16:(uint16_t*)src dst:(uint16_t*)dst width:(int)width height:(int)height depth:(int)depth {
     Pixel_16U whiteColor = (uint16_t)(powf(2.0f, (float)depth) - 1);
     vImage_Buffer srcBuffer = {

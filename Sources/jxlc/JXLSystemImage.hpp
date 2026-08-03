@@ -70,6 +70,7 @@ typedef NS_ENUM(NSInteger, JXLEncoderDecodingSpeed)  {
 @interface JXLSystemImage (JXLColorData)
 #ifdef __cplusplus
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize;
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample;
 #endif
 @end
 

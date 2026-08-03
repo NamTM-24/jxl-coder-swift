@@ -50,11 +50,37 @@
     return true;
 }
 
+-(bool)unpremultiply16:(nonnull uint16_t*)data width:(NSInteger)width height:(NSInteger)height {
+    vImage_Buffer src = {
+        .data = (void*)data,
+        .width = static_cast<vImagePixelCount>(width),
+        .height = static_cast<vImagePixelCount>(height),
+        .rowBytes = static_cast<vImagePixelCount>(width * 4 * sizeof(uint16_t))
+    };
+
+    vImage_Buffer dest = {
+        .data = (void*)data,
+        .width = static_cast<vImagePixelCount>(width),
+        .height = static_cast<vImagePixelCount>(height),
+        .rowBytes = static_cast<vImagePixelCount>(width * 4 * sizeof(uint16_t))
+    };
+    vImage_Error vEerror = vImageUnpremultiplyData_RGBA16U(&src, &dest, kvImageNoFlags);
+    if (vEerror != kvImageNoError) {
+        return false;
+    }
+    return true;
+}
+
 #if TARGET_OS_OSX
 
 -(nullable CGImageRef)makeCGImage {
     CGImageRef imageRef = [self CGImageForProposedRect:nil context:nil hints:nil];
     return imageRef;
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample {
+    *bitsPerSample = 8;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize];
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize {
@@ -91,6 +117,70 @@
     return true;
 }
 #else
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample {
+    CGImageRef imageRef = [self CGImage];
+    NSUInteger width = CGImageGetWidth(imageRef);
+    NSUInteger height = CGImageGetHeight(imageRef);
+    size_t bpc = CGImageGetBitsPerComponent(imageRef);
+    if (bpc > 8) {
+        bpc = 16;
+    } else {
+        bpc = 8;
+    }
+    *bitsPerSample = (int)bpc;
+    *xSize = (int)width;
+    *ySize = (int)height;
+
+    CGColorSpaceRef colorSpace = CGImageGetColorSpace(imageRef);
+    bool releaseColorSpace = false;
+    if (colorSpace == NULL) {
+        colorSpace = CGColorSpaceCreateDeviceRGB();
+        releaseColorSpace = true;
+    }
+
+    if (bpc == 16) {
+        buffer.resize(height * width * 4 * sizeof(uint16_t));
+        NSUInteger bytesPerPixel = 8;
+        NSUInteger bytesPerRow = bytesPerPixel * width;
+        NSUInteger bitsPerComponent = 16;
+        CGContextRef context = CGBitmapContextCreate(buffer.data(), width, height,
+                                                     bitsPerComponent, bytesPerRow, colorSpace,
+                                                     (int)kCGImageAlphaPremultipliedLast | (int)kCGBitmapByteOrder16Host);
+        if (context == NULL) {
+            if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
+            return false;
+        }
+        CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
+        CGContextRelease(context);
+        if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
+
+        if (![self unpremultiply16:(uint16_t*)buffer.data() width:width height:height]) {
+            return false;
+        }
+        return true;
+    } else {
+        buffer.resize(height * width * 4 * sizeof(uint8_t));
+        NSUInteger bytesPerPixel = 4;
+        NSUInteger bytesPerRow = bytesPerPixel * width;
+        NSUInteger bitsPerComponent = 8;
+        CGContextRef context = CGBitmapContextCreate(buffer.data(), width, height,
+                                                     bitsPerComponent, bytesPerRow, colorSpace,
+                                                     (int)kCGImageAlphaPremultipliedLast | (int)kCGImageByteOrderDefault);
+        if (context == NULL) {
+            if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
+            return false;
+        }
+        CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
+        CGContextRelease(context);
+        if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
+
+        if (![self unpremultiply:buffer.data() width:width height:height]) {
+            return false;
+        }
+        return true;
+    }
+}
+
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize {
     CGImageRef imageRef = [self CGImage];
     NSUInteger width = CGImageGetWidth(imageRef);

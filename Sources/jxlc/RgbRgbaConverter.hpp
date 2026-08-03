@@ -42,6 +42,7 @@
  * @return destination
  */
 +(std::vector<uint8_t>) convertRGBAtoRGB:(std::vector<uint8_t>&)srcVector width:(int)width height:(int)height;
++(std::vector<uint8_t>) convertRGBAtoRGB:(std::vector<uint8_t>&)srcVector width:(int)width height:(int)height bitsPerSample:(int)bitsPerSample;
 
 /**
  * Converts unsigned uint16_t RGB to RGBA in uint16_t.

@@ -270,7 +270,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       float compressionDistance,
                       int effort,
                       int decodingSpeed,
-                      const std::vector<uint8_t>& exifData) {
+                      const std::vector<uint8_t>& exifData,
+                      int bitsPerSample) {
     auto enc = JxlEncoderMake(nullptr);
     auto runner = JxlThreadParallelRunnerMake(nullptr,
                                               JxlThreadParallelRunnerDefaultNumWorkerThreads());
@@ -280,13 +281,14 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
         return false;
     }
 
-    JxlPixelFormat pixel_format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+    JxlDataType dataType = (bitsPerSample > 8) ? JXL_TYPE_UINT16 : JXL_TYPE_UINT8;
+    JxlPixelFormat pixel_format = {3, dataType, JXL_NATIVE_ENDIAN, 0};
     switch (colorspace) {
         case rgb:
-            pixel_format = {3, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+            pixel_format = {3, dataType, JXL_NATIVE_ENDIAN, 0};
             break;
         case rgba:
-            pixel_format = {4, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
+            pixel_format = {4, dataType, JXL_NATIVE_ENDIAN, 0};
             break;
     }
 
@@ -294,13 +296,13 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
     JxlEncoderInitBasicInfo(&basicInfo);
     basicInfo.xsize = xsize;
     basicInfo.ysize = ysize;
-    basicInfo.bits_per_sample = 8;
+    basicInfo.bits_per_sample = bitsPerSample;
     basicInfo.uses_original_profile = compressionOption == loosy ? JXL_FALSE : JXL_TRUE;
     basicInfo.num_color_channels = 3;
 
     if (colorspace == rgba) {
         basicInfo.num_extra_channels = 1;
-        basicInfo.alpha_bits = 8;
+        basicInfo.alpha_bits = bitsPerSample;
     }
 
     if (JXL_ENC_SUCCESS != JxlEncoderSetBasicInfo(enc.get(), &basicInfo)) {
@@ -315,7 +317,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
             basicInfo.num_color_channels = 4;
             JxlExtraChannelInfo channelInfo;
             JxlEncoderInitExtraChannelInfo(JXL_CHANNEL_ALPHA, &channelInfo);
-            channelInfo.bits_per_sample = 8;
+            channelInfo.bits_per_sample = bitsPerSample;
             channelInfo.alpha_premultiplied = false;
             if (JXL_ENC_SUCCESS != JxlEncoderSetExtraChannelInfo(enc.get(), 0, &channelInfo)) {
                 return false;
@@ -334,7 +336,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
     JxlEncoderFrameSettingsCreate(enc.get(), nullptr);
 
     JxlBitDepth depth;
-    depth.bits_per_sample = 8;
+    depth.bits_per_sample = bitsPerSample;
     depth.exponent_bits_per_sample = 0;
     depth.type = JXL_BIT_DEPTH_FROM_PIXEL_FORMAT;
     if (JXL_ENC_SUCCESS != JxlEncoderSetFrameBitDepth(frameSettings, &depth)) {
