@@ -120,10 +120,11 @@ static inline float JXLGetDistance(const int quality)
         }
 
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
-        // When pixel data is 16-bit float, it was rendered into Extended Linear Display P3
-        // by Apple's CIContext (extendedLinearDisplayP3). Pass that color space explicitly
-        // so libjxl encodes with correct primaries + linear transfer function.
-        JxlColorSpaceEncoding cse = isFloat ? JXL_CSE_LINEAR_DISPLAY_P3 : JXL_CSE_SRGB;
+        // Pixel data is 16-bit float rendered into extendedLinearSRGB
+        // (sRGB primaries, linear transfer, extended range for HDR highlights).
+        // JXL_CSE_LINEAR_SRGB tells libjxl to encode with linear sRGB color encoding,
+        // which any viewer can display correctly without needing gamut mapping.
+        JxlColorSpaceEncoding cse = isFloat ? JXL_CSE_LINEAR_SRGB : JXL_CSE_SRGB;
         auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
                                         effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, cse);
