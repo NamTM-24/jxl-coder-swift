@@ -85,7 +85,7 @@
         .height = static_cast<vImagePixelCount>(height),
         .rowBytes = static_cast<vImagePixelCount>(width * 4 * sizeof(uint16_t))
     };
-    vImage_Error vEerror = vImageUnpremultiplyData_RGBAHalf(&src, &dest, kvImageNoFlags);
+    vImage_Error vEerror = vImageUnpremultiplyData_RGBA16F(&src, &dest, kvImageNoFlags);
     if (vEerror != kvImageNoError) {
         return false;
     }
