@@ -31,6 +31,7 @@
 #import "RgbRgbaConverter.hpp"
 #import "RgbaScaler.h"
 #import <algorithm>
+#import <cmath>
 
 static void JXLCGData8ProviderReleaseDataCallback(void *info, const void *data, size_t size) {
     auto dataWrapper = static_cast<JXLDataWrapper<uint8_t>*>(info);
@@ -122,12 +123,48 @@ static inline float JXLGetDistance(const int quality)
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
         // Pixel data is 16-bit float rendered into extendedLinearSRGB
         // (sRGB primaries, linear transfer, extended range for HDR highlights).
-        // JXL_CSE_LINEAR_SRGB tells libjxl to encode with linear sRGB color encoding,
-        // which any viewer can display correctly without needing gamut mapping.
         JxlColorSpaceEncoding cse = isFloat ? JXL_CSE_LINEAR_SRGB : JXL_CSE_SRGB;
+
+        // For HDR float images, calculate intensityTarget from the actual peak pixel value.
+        // Apple's expandToHDR renders into extendedLinearSRGB where:
+        //   - 1.0 = SDR reference white (≈203 nits in Apple EDR context)
+        //   - values > 1.0 = HDR highlights
+        // We scan the float buffer to find the maximum value and set
+        // intensity_target = maxValue * 203.0 so libjxl's decoder knows the actual
+        // peak luminance and can tone-map correctly without clipping highlights.
+        float intensityTarget = 0.0f;
+        if (isFloat && bitsPerSample == 16) {
+            const uint16_t* fp16Data = reinterpret_cast<const uint16_t*>(pixels.data());
+            size_t sampleCount = pixels.size() / sizeof(uint16_t);
+            float maxVal = 1.0f;
+            // Sample every 64th pixel for performance (sufficient for estimating peak)
+            for (size_t i = 0; i < sampleCount; i += 64) {
+                // Convert float16 to float32 manually (sign|exp|mantissa)
+                uint16_t h = fp16Data[i];
+                uint32_t sign = (h >> 15) & 0x1;
+                uint32_t exp  = (h >> 10) & 0x1F;
+                uint32_t mant = h & 0x3FF;
+                float val = 0.0f;
+                if (exp == 0) {
+                    val = (mant == 0) ? 0.0f : ldexpf((float)mant, -24);
+                } else if (exp == 31) {
+                    val = (mant == 0) ? INFINITY : NAN;
+                } else {
+                    uint32_t f32 = (sign << 31) | ((exp + 112) << 23) | (mant << 13);
+                    memcpy(&val, &f32, sizeof(float));
+                }
+                if (std::isfinite(val) && val > maxVal) {
+                    maxVal = val;
+                }
+            }
+            // intensity_target = peak pixel value × 203 nits (Apple EDR reference white)
+            // Clamp to a sensible HDR range [203, 10000] nits
+            intensityTarget = std::max(203.0f, std::min(maxVal * 203.0f, 10000.0f));
+        }
+
         auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
-                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, cse);
+                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, cse, intensityTarget);
         if (!encoded) {
             delete wrapper;
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot encode JXL image" }];

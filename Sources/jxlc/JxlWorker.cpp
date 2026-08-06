@@ -273,7 +273,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample,
                       bool useFloats,
-                      JxlColorSpaceEncoding colorSpaceEncoding) {
+                      JxlColorSpaceEncoding colorSpaceEncoding,
+                      float intensityTarget) {
     auto enc = JxlEncoderMake(nullptr);
     auto runner = JxlThreadParallelRunnerMake(nullptr,
                                               JxlThreadParallelRunnerDefaultNumWorkerThreads());
@@ -303,7 +304,22 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
     basicInfo.ysize = ysize;
     basicInfo.bits_per_sample = bitsPerSample;
     basicInfo.exponent_bits_per_sample = useFloats ? 5 : 0;
-    basicInfo.uses_original_profile = compressionOption == loosy ? JXL_FALSE : JXL_TRUE;
+
+    if (useFloats) {
+        // For HDR float content, must keep uses_original_profile = JXL_TRUE so that
+        // the decoder outputs the data in the declared linear color space rather than
+        // converting it to sRGB gamma (which would cause color shift and blown highlights).
+        basicInfo.uses_original_profile = JXL_TRUE;
+        // intensity_target tells the decoder the peak luminance in nits.
+        // 0 = let libjxl choose default (255 for linear sRGB = SDR only).
+        // For Apple HDR: headroom * 203 nits (203 = SDR reference white in EDR).
+        // If caller provides a target, use it; otherwise fall back to 1000 nits (common HDR target).
+        basicInfo.intensity_target = (intensityTarget > 0.0f) ? intensityTarget : 1000.0f;
+    } else {
+        basicInfo.uses_original_profile = compressionOption == loosy ? JXL_FALSE : JXL_TRUE;
+        // 0 = libjxl default (255 nits for sRGB integer, appropriate for SDR)
+        basicInfo.intensity_target = 0.0f;
+    }
     basicInfo.num_color_channels = 3;
 
     if (colorspace == rgba) {

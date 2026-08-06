@@ -66,7 +66,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample = 8,
                       bool useFloats = false,
-                      JxlColorSpaceEncoding colorSpaceEncoding = JXL_CSE_SRGB);
+                      JxlColorSpaceEncoding colorSpaceEncoding = JXL_CSE_SRGB,
+                      float intensityTarget = 0.0f);
 
 bool isJXL(std::vector<uint8_t>& src);
 

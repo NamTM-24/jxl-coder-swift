@@ -105,6 +105,12 @@
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat {
+    float dummyTarget = 0.0f;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloat intensityTarget:&dummyTarget];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat intensityTarget:(nonnull float*)intensityTarget {
+    *intensityTarget = 0.0f;
     std::vector<uint8_t> dummyIcc;
     return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloat iccProfile:&dummyIcc];
 }
@@ -156,6 +162,12 @@
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloatRes {
+    float dummyTarget = 0.0f;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloatRes intensityTarget:&dummyTarget];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloatRes intensityTarget:(nonnull float*)intensityTarget {
+    *intensityTarget = 0.0f;
     std::vector<uint8_t> dummyIcc;
     return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloatRes iccProfile:&dummyIcc];
 }
