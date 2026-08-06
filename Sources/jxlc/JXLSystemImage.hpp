@@ -72,6 +72,7 @@ typedef NS_ENUM(NSInteger, JXLEncoderDecodingSpeed)  {
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize;
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample;
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat;
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat iccProfile:(nonnull std::vector<uint8_t>*)iccProfile;
 #endif
 @end
 

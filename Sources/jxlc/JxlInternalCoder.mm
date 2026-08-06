@@ -73,7 +73,8 @@ static inline float JXLGetDistance(const int quality)
         int width, height;
         int bitsPerSample = 8;
         bool isFloat = false;
-        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height bitsPerSample:&bitsPerSample isFloat:&isFloat];
+        std::vector<uint8_t> iccProfile;
+        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height bitsPerSample:&bitsPerSample isFloat:&isFloat iccProfile:&iccProfile];
         if (width < 0 || height < 0) {
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Width and height must be > 0!!" }];
             return nil;
@@ -122,7 +123,7 @@ static inline float JXLGetDistance(const int quality)
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
         auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
-                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat);
+                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, iccProfile);
         if (!encoded) {
             delete wrapper;
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot encode JXL image" }];

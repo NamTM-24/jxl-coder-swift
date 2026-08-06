@@ -58,7 +58,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       int decodingSpeed,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample = 8,
-                      bool useFloats = false);
+                      bool useFloats = false,
+                      const std::vector<uint8_t>& iccProfile = std::vector<uint8_t>());
 
 bool isJXL(std::vector<uint8_t>& src);
 

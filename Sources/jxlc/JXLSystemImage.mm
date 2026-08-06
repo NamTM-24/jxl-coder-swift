@@ -105,8 +105,14 @@
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat {
+    std::vector<uint8_t> dummyIcc;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloat iccProfile:&dummyIcc];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat iccProfile:(nonnull std::vector<uint8_t>*)iccProfile {
     *isFloat = false;
     *bitsPerSample = 8;
+    iccProfile->clear();
     return [self jxlRGBAPixels:buffer width:xSize height:ySize];
 }
 
@@ -150,7 +156,13 @@
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloatRes {
+    std::vector<uint8_t> dummyIcc;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:isFloatRes iccProfile:&dummyIcc];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloatRes iccProfile:(nonnull std::vector<uint8_t>*)iccProfile {
     *isFloatRes = false;
+    iccProfile->clear();
     CGImageRef imageRef = [self CGImage];
     NSUInteger width = CGImageGetWidth(imageRef);
     NSUInteger height = CGImageGetHeight(imageRef);
@@ -169,6 +181,14 @@
     if (colorSpace == NULL) {
         colorSpace = CGColorSpaceCreateDeviceRGB();
         releaseColorSpace = true;
+    } else {
+        CFDataRef iccData = CGColorSpaceCopyICCData(colorSpace);
+        if (iccData != NULL) {
+            const uint8_t* ptr = CFDataGetBytePtr(iccData);
+            size_t length = CFDataGetLength(iccData);
+            iccProfile->assign(ptr, ptr + length);
+            CFRelease(iccData);
+        }
     }
 
     if (bpc == 16) {

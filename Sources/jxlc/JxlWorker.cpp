@@ -272,7 +272,8 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       int decodingSpeed,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample,
-                      bool useFloats) {
+                      bool useFloats,
+                      const std::vector<uint8_t>& iccProfile) {
     auto enc = JxlEncoderMake(nullptr);
     auto runner = JxlThreadParallelRunnerMake(nullptr,
                                               JxlThreadParallelRunnerDefaultNumWorkerThreads());
@@ -332,11 +333,17 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
             break;
     }
 
-    JxlColorEncoding color_encoding = {};
-    JxlColorEncodingSetToSRGB(&color_encoding, pixel_format.num_channels < 3);
-    if (JXL_ENC_SUCCESS !=
-        JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
-        return false;
+    if (!iccProfile.empty()) {
+        if (JXL_ENC_SUCCESS != JxlEncoderSetICCProfile(enc.get(), iccProfile.data(), iccProfile.size())) {
+            return false;
+        }
+    } else {
+        JxlColorEncoding color_encoding = {};
+        JxlColorEncodingSetToSRGB(&color_encoding, pixel_format.num_channels < 3);
+        if (JXL_ENC_SUCCESS !=
+            JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
+            return false;
+        }
     }
 
     JxlEncoderFrameSettings *frameSettings =
