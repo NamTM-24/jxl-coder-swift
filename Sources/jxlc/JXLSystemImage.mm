@@ -181,14 +181,6 @@
     if (colorSpace == NULL) {
         colorSpace = CGColorSpaceCreateDeviceRGB();
         releaseColorSpace = true;
-    } else {
-        CFDataRef iccData = CGColorSpaceCopyICCData(colorSpace);
-        if (iccData != NULL) {
-            const uint8_t* ptr = CFDataGetBytePtr(iccData);
-            size_t length = CFDataGetLength(iccData);
-            iccProfile->assign(ptr, ptr + length);
-            CFRelease(iccData);
-        }
     }
 
     if (bpc == 16) {

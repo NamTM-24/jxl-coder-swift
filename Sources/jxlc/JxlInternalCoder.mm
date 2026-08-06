@@ -73,8 +73,7 @@ static inline float JXLGetDistance(const int quality)
         int width, height;
         int bitsPerSample = 8;
         bool isFloat = false;
-        std::vector<uint8_t> iccProfile;
-        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height bitsPerSample:&bitsPerSample isFloat:&isFloat iccProfile:&iccProfile];
+        auto imageRetrievingResult = [platformImage jxlRGBAPixels:pixels width:&width height:&height bitsPerSample:&bitsPerSample isFloat:&isFloat];
         if (width < 0 || height < 0) {
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Width and height must be > 0!!" }];
             return nil;
@@ -121,9 +120,13 @@ static inline float JXLGetDistance(const int quality)
         }
 
         JXLDataWrapper<uint8_t>* wrapper = new JXLDataWrapper<uint8_t>();
+        // When pixel data is 16-bit float, it was rendered into Extended Linear Display P3
+        // by Apple's CIContext (extendedLinearDisplayP3). Pass that color space explicitly
+        // so libjxl encodes with correct primaries + linear transfer function.
+        JxlColorSpaceEncoding cse = isFloat ? JXL_CSE_LINEAR_DISPLAY_P3 : JXL_CSE_SRGB;
         auto encoded = EncodeJxlOneshot(pixels, width, height, &wrapper->data,
                                         jColorspace, jCompressionOption, JXLGetDistance(quality),
-                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, iccProfile);
+                                        effort, (int)decodingSpeed, cppExifData, bitsPerSample, isFloat, cse);
         if (!encoded) {
             delete wrapper;
             *error = [[NSError alloc] initWithDomain:@"JXLCoder" code:500 userInfo:@{ NSLocalizedDescriptionKey: @"Cannot encode JXL image" }];

@@ -273,7 +273,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample,
                       bool useFloats,
-                      const std::vector<uint8_t>& iccProfile) {
+                      JxlColorSpaceEncoding colorSpaceEncoding) {
     auto enc = JxlEncoderMake(nullptr);
     auto runner = JxlThreadParallelRunnerMake(nullptr,
                                               JxlThreadParallelRunnerDefaultNumWorkerThreads());
@@ -333,17 +333,27 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
             break;
     }
 
-    if (!iccProfile.empty()) {
-        if (JXL_ENC_SUCCESS != JxlEncoderSetICCProfile(enc.get(), iccProfile.data(), iccProfile.size())) {
-            return false;
-        }
-    } else {
-        JxlColorEncoding color_encoding = {};
-        JxlColorEncodingSetToSRGB(&color_encoding, pixel_format.num_channels < 3);
-        if (JXL_ENC_SUCCESS !=
-            JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
-            return false;
-        }
+    JxlColorEncoding color_encoding = {};
+    switch (colorSpaceEncoding) {
+        case JXL_CSE_LINEAR_DISPLAY_P3:
+            // Extended Linear Display P3 — Apple HDR color space.
+            // Primaries: DCI-P3 with D65 white point. Transfer: Linear (gamma=1).
+            color_encoding.color_space = JXL_COLOR_SPACE_RGB;
+            color_encoding.white_point = JXL_WHITE_POINT_D65;
+            color_encoding.primaries = JXL_PRIMARIES_P3;
+            color_encoding.transfer_function = JXL_TRANSFER_FUNCTION_LINEAR;
+            color_encoding.rendering_intent = JXL_RENDERING_INTENT_PERCEPTUAL;
+            break;
+        case JXL_CSE_LINEAR_SRGB:
+            JxlColorEncodingSetToLinearSRGB(&color_encoding, pixel_format.num_channels < 3);
+            break;
+        case JXL_CSE_SRGB:
+        default:
+            JxlColorEncodingSetToSRGB(&color_encoding, pixel_format.num_channels < 3);
+            break;
+    }
+    if (JXL_ENC_SUCCESS != JxlEncoderSetColorEncoding(enc.get(), &color_encoding)) {
+        return false;
     }
 
     JxlEncoderFrameSettings *frameSettings =

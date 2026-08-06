@@ -38,6 +38,13 @@ enum JxlChannelsType {
     Rgb, Cmyk
 };
 
+// Enum describing the color space of the pixel data being encoded.
+enum JxlColorSpaceEncoding {
+    JXL_CSE_SRGB,               // Standard sRGB (8-bit or 16-bit integer)
+    JXL_CSE_LINEAR_DISPLAY_P3,  // Extended Linear Display P3 (Apple HDR, 16-bit float)
+    JXL_CSE_LINEAR_SRGB,        // Linear sRGB
+};
+
 bool DecodeJpegXlOneShot(const uint8_t *jxl, size_t size,
                          std::vector<uint8_t> *pixels, size_t *xsize,
                          size_t *ysize,
@@ -59,7 +66,7 @@ bool EncodeJxlOneshot(const std::vector<uint8_t> &pixels, const uint32_t xsize,
                       const std::vector<uint8_t>& exifData,
                       int bitsPerSample = 8,
                       bool useFloats = false,
-                      const std::vector<uint8_t>& iccProfile = std::vector<uint8_t>());
+                      JxlColorSpaceEncoding colorSpaceEncoding = JXL_CSE_SRGB);
 
 bool isJXL(std::vector<uint8_t>& src);
 
