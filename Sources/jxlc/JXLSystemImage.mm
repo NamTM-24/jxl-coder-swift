@@ -100,6 +100,12 @@
 }
 
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample {
+    bool dummyFloat = false;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:&dummyFloat];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloat {
+    *isFloat = false;
     *bitsPerSample = 8;
     return [self jxlRGBAPixels:buffer width:xSize height:ySize];
 }
@@ -139,6 +145,12 @@
 }
 #else
 - (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample {
+    bool dummyFloat = false;
+    return [self jxlRGBAPixels:buffer width:xSize height:ySize bitsPerSample:bitsPerSample isFloat:&dummyFloat];
+}
+
+- (bool)jxlRGBAPixels:(std::vector<uint8_t>&)buffer width:(nonnull int*)xSize height:(nonnull int*)ySize bitsPerSample:(nonnull int*)bitsPerSample isFloat:(nonnull bool*)isFloatRes {
+    *isFloatRes = false;
     CGImageRef imageRef = [self CGImage];
     NSUInteger width = CGImageGetWidth(imageRef);
     NSUInteger height = CGImageGetHeight(imageRef);
@@ -191,6 +203,7 @@
         if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
 
         if (isFloat) {
+            *isFloatRes = true;
             if (![self unpremultiplyFloat16:(uint16_t*)buffer.data() width:width height:height]) {
                 return false;
             }
