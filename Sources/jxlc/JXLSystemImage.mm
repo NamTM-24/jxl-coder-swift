@@ -71,6 +71,27 @@
     return true;
 }
 
+-(bool)unpremultiplyFloat16:(nonnull uint16_t*)data width:(NSInteger)width height:(NSInteger)height {
+    vImage_Buffer src = {
+        .data = (void*)data,
+        .width = static_cast<vImagePixelCount>(width),
+        .height = static_cast<vImagePixelCount>(height),
+        .rowBytes = static_cast<vImagePixelCount>(width * 4 * sizeof(uint16_t))
+    };
+
+    vImage_Buffer dest = {
+        .data = (void*)data,
+        .width = static_cast<vImagePixelCount>(width),
+        .height = static_cast<vImagePixelCount>(height),
+        .rowBytes = static_cast<vImagePixelCount>(width * 4 * sizeof(uint16_t))
+    };
+    vImage_Error vEerror = vImageUnpremultiplyData_RGBAHalf(&src, &dest, kvImageNoFlags);
+    if (vEerror != kvImageNoError) {
+        return false;
+    }
+    return true;
+}
+
 #if TARGET_OS_OSX
 
 -(nullable CGImageRef)makeCGImage {
@@ -143,9 +164,24 @@
         NSUInteger bytesPerPixel = 8;
         NSUInteger bytesPerRow = bytesPerPixel * width;
         NSUInteger bitsPerComponent = 16;
+        
+        CGBitmapInfo bitmapInfo = (int)kCGImageAlphaPremultipliedLast | (int)kCGBitmapByteOrder16Host;
+        bool isFloat = ((CGImageGetBitmapInfo(imageRef) & kCGBitmapFloatComponents) != 0);
+        if (isFloat) {
+            bitmapInfo |= (int)kCGBitmapFloatComponents;
+        }
+        
         CGContextRef context = CGBitmapContextCreate(buffer.data(), width, height,
                                                      bitsPerComponent, bytesPerRow, colorSpace,
-                                                     (int)kCGImageAlphaPremultipliedLast | (int)kCGBitmapByteOrder16Host);
+                                                     bitmapInfo);
+        if (context == NULL && !isFloat) {
+            isFloat = true;
+            bitmapInfo |= (int)kCGBitmapFloatComponents;
+            context = CGBitmapContextCreate(buffer.data(), width, height,
+                                            bitsPerComponent, bytesPerRow, colorSpace,
+                                            bitmapInfo);
+        }
+        
         if (context == NULL) {
             if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
             return false;
@@ -154,8 +190,14 @@
         CGContextRelease(context);
         if (releaseColorSpace) { CGColorSpaceRelease(colorSpace); }
 
-        if (![self unpremultiply16:(uint16_t*)buffer.data() width:width height:height]) {
-            return false;
+        if (isFloat) {
+            if (![self unpremultiplyFloat16:(uint16_t*)buffer.data() width:width height:height]) {
+                return false;
+            }
+        } else {
+            if (![self unpremultiply16:(uint16_t*)buffer.data() width:width height:height]) {
+                return false;
+            }
         }
         return true;
     } else {
